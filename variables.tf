@@ -97,7 +97,7 @@ variable "key_vault_name" {
 variable "appgateway_name" {
   type        = string
   description = "Application Gateway name"
-  default     = "appgateway-amorrescate"
+  default     = "appgateway-cheriza"
 }
 
 variable "appgateway_publicip_name" {
