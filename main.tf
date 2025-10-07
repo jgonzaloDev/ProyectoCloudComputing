@@ -96,7 +96,7 @@ resource "azurerm_windows_web_app" "web" {
 
     application_stack {
       current_stack  = "dotnet"
-      dotnet_version = "v10.0"   # Runtime .NET 10 (LTS)
+      dotnet_version = "v8.0"   # Runtime .NET 8 (LTS)
     }
   }
 
