@@ -68,14 +68,14 @@ resource "azurerm_subnet" "subnet_pe" {
 }
 
 # =========================================================
-# App Service Plan (Windows) + Web App Windows
+# App Service Plan (Windows S1) + Web App Windows (.NET 10 LTS)
 # =========================================================
 resource "azurerm_service_plan" "plan" {
   name                = var.app_service_plan_name
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   os_type             = "Windows"
-  sku_name            = "B1"
+  sku_name            = "S1"   # Estándar S1 (1.75 GB RAM, 1 vCPU)
 }
 
 resource "azurerm_windows_web_app" "web" {
@@ -93,6 +93,11 @@ resource "azurerm_windows_web_app" "web" {
   site_config {
     always_on              = true
     vnet_route_all_enabled = true
+
+    application_stack {
+      current_stack  = "dotnet"
+      dotnet_version = "v10.0"   # Runtime .NET 10 (LTS)
+    }
   }
 
   app_settings = {
@@ -268,7 +273,7 @@ locals {
 }
 
 resource "azurerm_application_gateway" "agw" {
-  name                = "appgateway-cheriza"
+  name                = "appgateway-amorrescate"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
