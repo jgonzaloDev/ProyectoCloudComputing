@@ -329,11 +329,10 @@ resource "azurerm_application_gateway" "agw" {
     timeout             = 30
     unhealthy_threshold = 3
     match {
-      status_codes = "200-399"
+      status_code = "200-399"
     }
   }
 
-  # Listener HTTPS
   http_listener {
     name                           = "listener-https"
     frontend_ip_configuration_name = "feip"
@@ -342,7 +341,6 @@ resource "azurerm_application_gateway" "agw" {
     protocol                       = "Https"
   }
 
-  # Listener HTTP con redirección a HTTPS
   http_listener {
     name                           = "listener-http"
     frontend_ip_configuration_name = "feip"
@@ -358,7 +356,6 @@ resource "azurerm_application_gateway" "agw" {
     include_query_string = true
   }
 
-  # Regla HTTPS principal
   request_routing_rule {
     name                       = "rule-https"
     rule_type                  = "Basic"
@@ -368,13 +365,12 @@ resource "azurerm_application_gateway" "agw" {
     priority                   = 10
   }
 
-  # Regla HTTP para redirección
   request_routing_rule {
-    name                  = "rule-http-redirect"
-    rule_type             = "Basic"
-    http_listener_name    = "listener-http"
+    name                        = "rule-http-redirect"
+    rule_type                   = "Basic"
+    http_listener_name          = "listener-http"
     redirect_configuration_name = "redirect-to-https"
-    priority              = 20
+    priority                    = 20
   }
 }
 
