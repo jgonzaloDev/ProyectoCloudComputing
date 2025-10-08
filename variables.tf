@@ -1,3 +1,6 @@
+# =========================================================
+# Variables generales
+# =========================================================
 variable "subscription_id" {
   type        = string
   description = "Azure subscription ID"
@@ -18,9 +21,9 @@ variable "resource_group_name" {
   description = "Resource group name"
 }
 
-# ===============================
+# =========================================================
 # Networking
-# ===============================
+# =========================================================
 variable "vnet_name" {
   type        = string
   description = "Virtual network name"
@@ -46,9 +49,9 @@ variable "subnet_privateendpoint_cidr" {
   description = "Address range for Private Endpoint subnet (e.g. 10.0.3.0/24)"
 }
 
-# ===============================
+# =========================================================
 # App Service
-# ===============================
+# =========================================================
 variable "app_service_plan_name" {
   type        = string
   description = "App Service Plan name"
@@ -59,9 +62,9 @@ variable "webapp_name" {
   description = "App Service (Windows Web App) name"
 }
 
-# ===============================
+# =========================================================
 # SQL Server
-# ===============================
+# =========================================================
 variable "sql_server_name" {
   type        = string
   description = "SQL Server name"
@@ -83,25 +86,40 @@ variable "sql_database_name" {
   description = "SQL Database name"
 }
 
-# ===============================
+# =========================================================
 # Key Vault
-# ===============================
+# =========================================================
 variable "key_vault_name" {
   type        = string
   description = "Azure Key Vault name"
 }
 
-# ===============================
+# =========================================================
 # Application Gateway
-# ===============================
+# =========================================================
 variable "appgateway_name" {
   type        = string
   description = "Application Gateway name"
-  default     = "appgateway-cheriza"
+  default     = "appgateway-amorrescate"
 }
 
 variable "appgateway_publicip_name" {
   type        = string
   description = "Application Gateway Public IP name"
   default     = "agw-public-ip"
+}
+
+# =========================================================
+# Certificado SSL (PFX)
+# =========================================================
+variable "pfx_base64" {
+  description = "Certificado PFX codificado en Base64"
+  type        = string
+  sensitive   = true
+}
+
+variable "pfx_password" {
+  description = "Contraseña del certificado PFX"
+  type        = string
+  sensitive   = true
 }

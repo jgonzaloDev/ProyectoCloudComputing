@@ -68,14 +68,14 @@ resource "azurerm_subnet" "subnet_pe" {
 }
 
 # =========================================================
-# App Service Plan (Windows S1) + Web App Windows (.NET 10 LTS)
+# App Service Plan (Windows S1) + Web App Windows (.NET 8 LTS)
 # =========================================================
 resource "azurerm_service_plan" "plan" {
   name                = var.app_service_plan_name
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   os_type             = "Windows"
-  sku_name            = "S1"   # Estándar S1 (1.75 GB RAM, 1 vCPU)
+  sku_name            = "S1"
 }
 
 resource "azurerm_windows_web_app" "web" {
@@ -96,7 +96,7 @@ resource "azurerm_windows_web_app" "web" {
 
     application_stack {
       current_stack  = "dotnet"
-      dotnet_version = "v8.0"   # Runtime .NET 8 (LTS)
+      dotnet_version = "v8.0"
     }
   }
 
@@ -140,17 +140,10 @@ resource "azurerm_key_vault" "kv" {
   resource_group_name         = azurerm_resource_group.rg.name
   tenant_id                   = var.tenant_id
   sku_name                    = "standard"
-
   soft_delete_retention_days   = 7
   purge_protection_enabled     = false
   public_network_access_enabled = false
   enable_rbac_authorization    = true
-}
-
-resource "azurerm_role_assignment" "kv_secrets_officer" {
-  scope                = azurerm_key_vault.kv.id
-  role_definition_name = "Key Vault Secrets Officer"
-  principal_id         = azurerm_windows_web_app.web.identity[0].principal_id
 }
 
 # =========================================================
@@ -253,7 +246,7 @@ resource "azurerm_private_endpoint" "pe_kv" {
 }
 
 # =========================================================
-# Application Gateway
+# Application Gateway (HTTP + HTTPS + Certificado)
 # =========================================================
 resource "azurerm_public_ip" "agw_pip" {
   name                = "agw-public-ip"
@@ -270,6 +263,15 @@ data "azurerm_network_interface" "pe_web_nic" {
 
 locals {
   webapp_pe_private_ip = data.azurerm_network_interface.pe_web_nic.ip_configuration[0].private_ip_address
+}
+
+# Certificado SSL
+resource "azurerm_application_gateway_ssl_certificate" "ssl" {
+  name                    = "app-dojo-cert"
+  resource_group_name     = azurerm_resource_group.rg.name
+  application_gateway_name = "appgateway-amorrescate"
+  data                    = var.pfx_base64
+  password                = var.pfx_password
 }
 
 resource "azurerm_application_gateway" "agw" {
@@ -297,6 +299,11 @@ resource "azurerm_application_gateway" "agw" {
     port = 80
   }
 
+  frontend_port {
+    name = "port-443"
+    port = 443
+  }
+
   frontend_ip_configuration {
     name                 = "feip"
     public_ip_address_id = azurerm_public_ip.agw_pip.id
@@ -309,25 +316,48 @@ resource "azurerm_application_gateway" "agw" {
 
   backend_http_settings {
     name                  = "bhs-http"
-    cookie_based_affinity = "Disabled"
     port                  = 80
     protocol              = "Http"
     request_timeout       = 30
+    cookie_based_affinity = "Disabled"
+  }
+
+  backend_http_settings {
+    name                  = "bhs-https"
+    port                  = 443
+    protocol              = "Https"
+    request_timeout       = 30
+    cookie_based_affinity = "Disabled"
+    probe_name            = "probe-web"
+  }
+
+  probe {
+    name                = "probe-web"
+    protocol            = "Https"
+    host                = "appcheriza.azurewebsites.net"
+    path                = "/"
+    interval            = 30
+    timeout             = 30
+    unhealthy_threshold = 3
+    match {
+      status_codes = ["200-399"]
+    }
   }
 
   http_listener {
-    name                           = "listener-http"
+    name                           = "listener-https"
     frontend_ip_configuration_name = "feip"
-    frontend_port_name             = "port-80"
-    protocol                       = "Http"
+    frontend_port_name             = "port-443"
+    protocol                       = "Https"
+    ssl_certificate_name           = azurerm_application_gateway_ssl_certificate.ssl.name
   }
 
   request_routing_rule {
-    name                       = "rule-webapp"
+    name                       = "rule-https"
     rule_type                  = "Basic"
-    http_listener_name         = "listener-http"
+    http_listener_name         = "listener-https"
     backend_address_pool_name  = "pool-webapp-pe"
-    backend_http_settings_name = "bhs-http"
+    backend_http_settings_name = "bhs-https"
     priority                   = 10
   }
 }
