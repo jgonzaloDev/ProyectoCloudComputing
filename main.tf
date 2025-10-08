@@ -329,7 +329,7 @@ resource "azurerm_application_gateway" "agw" {
     timeout             = 30
     unhealthy_threshold = 3
     match {
-      status_codes = ["200-399"]
+      status_codes = "200-399"
     }
   }
 
