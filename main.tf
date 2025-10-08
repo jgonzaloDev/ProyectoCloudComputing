@@ -60,15 +60,15 @@ resource "azurerm_subnet" "subnet_integration" {
 
 # Subnet Private Endpoint
 resource "azurerm_subnet" "subnet_pe" {
-  name                          = "subnet-privateEndPoint"
-  resource_group_name           = azurerm_resource_group.rg.name
-  virtual_network_name          = azurerm_virtual_network.vnet.name
-  address_prefixes              = [var.subnet_privateendpoint_cidr]
+  name                           = "subnet-privateEndPoint"
+  resource_group_name            = azurerm_resource_group.rg.name
+  virtual_network_name           = azurerm_virtual_network.vnet.name
+  address_prefixes               = [var.subnet_privateendpoint_cidr]
   private_endpoint_network_policies = "Disabled"
 }
 
 # =========================================================
-# App Service Plan (Windows S1) + Web App Windows (.NET 8 LTS)
+# App Service Plan + Web App (Windows .NET 8)
 # =========================================================
 resource "azurerm_service_plan" "plan" {
   name                = var.app_service_plan_name
@@ -105,7 +105,7 @@ resource "azurerm_windows_web_app" "web" {
   }
 }
 
-# VNet Integration
+# Integración con la VNet
 resource "azurerm_app_service_virtual_network_swift_connection" "web_integration" {
   app_service_id = azurerm_windows_web_app.web.id
   subnet_id      = azurerm_subnet.subnet_integration.id
@@ -132,18 +132,18 @@ resource "azurerm_mssql_database" "db" {
 }
 
 # =========================================================
-# Key Vault privado + RBAC
+# Key Vault
 # =========================================================
 resource "azurerm_key_vault" "kv" {
-  name                        = var.key_vault_name
-  location                    = azurerm_resource_group.rg.location
-  resource_group_name         = azurerm_resource_group.rg.name
-  tenant_id                   = var.tenant_id
-  sku_name                    = "standard"
+  name                         = var.key_vault_name
+  location                     = azurerm_resource_group.rg.location
+  resource_group_name          = azurerm_resource_group.rg.name
+  tenant_id                    = var.tenant_id
+  sku_name                     = "standard"
   soft_delete_retention_days   = 7
   purge_protection_enabled     = false
   public_network_access_enabled = false
-  enable_rbac_authorization    = true
+  enable_rbac_authorization     = true
 }
 
 # =========================================================
@@ -265,15 +265,6 @@ locals {
   webapp_pe_private_ip = data.azurerm_network_interface.pe_web_nic.ip_configuration[0].private_ip_address
 }
 
-# Certificado SSL
-resource "azurerm_application_gateway_ssl_certificate" "ssl" {
-  name                    = "app-dojo-cert"
-  resource_group_name     = azurerm_resource_group.rg.name
-  application_gateway_name = "appgateway-amorrescate"
-  data                    = var.pfx_base64
-  password                = var.pfx_password
-}
-
 resource "azurerm_application_gateway" "agw" {
   name                = "appgateway-amorrescate"
   location            = azurerm_resource_group.rg.location
@@ -309,17 +300,15 @@ resource "azurerm_application_gateway" "agw" {
     public_ip_address_id = azurerm_public_ip.agw_pip.id
   }
 
+  ssl_certificate {
+    name     = "ssl-cert"
+    data     = var.pfx_base64
+    password = var.pfx_password
+  }
+
   backend_address_pool {
     name         = "pool-webapp-pe"
     ip_addresses = [local.webapp_pe_private_ip]
-  }
-
-  backend_http_settings {
-    name                  = "bhs-http"
-    port                  = 80
-    protocol              = "Http"
-    request_timeout       = 30
-    cookie_based_affinity = "Disabled"
   }
 
   backend_http_settings {
@@ -344,14 +333,32 @@ resource "azurerm_application_gateway" "agw" {
     }
   }
 
+  # Listener HTTPS
   http_listener {
     name                           = "listener-https"
     frontend_ip_configuration_name = "feip"
     frontend_port_name             = "port-443"
+    ssl_certificate_name           = "ssl-cert"
     protocol                       = "Https"
-    ssl_certificate_name           = azurerm_application_gateway_ssl_certificate.ssl.name
   }
 
+  # Listener HTTP con redirección a HTTPS
+  http_listener {
+    name                           = "listener-http"
+    frontend_ip_configuration_name = "feip"
+    frontend_port_name             = "port-80"
+    protocol                       = "Http"
+  }
+
+  redirect_configuration {
+    name                 = "redirect-to-https"
+    redirect_type        = "Permanent"
+    target_listener_name = "listener-https"
+    include_path         = true
+    include_query_string = true
+  }
+
+  # Regla HTTPS principal
   request_routing_rule {
     name                       = "rule-https"
     rule_type                  = "Basic"
@@ -359,6 +366,15 @@ resource "azurerm_application_gateway" "agw" {
     backend_address_pool_name  = "pool-webapp-pe"
     backend_http_settings_name = "bhs-https"
     priority                   = 10
+  }
+
+  # Regla HTTP para redirección
+  request_routing_rule {
+    name                  = "rule-http-redirect"
+    rule_type             = "Basic"
+    http_listener_name    = "listener-http"
+    redirect_configuration_name = "redirect-to-https"
+    priority              = 20
   }
 }
 
