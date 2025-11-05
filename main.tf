@@ -14,7 +14,7 @@ provider "azurerm" {
 }
 
 # ============================================================
-# 0. SUFIJO ALEATORIO PARA NOMBRES ÚNICOS
+# 0. SUFIJO ALEATORIO
 # ============================================================
 resource "random_id" "suffix" {
   byte_length = 2
@@ -29,7 +29,7 @@ resource "azurerm_resource_group" "rg" {
 }
 
 # ============================================================
-# 2. SERVIDOR SQL Y BASE DE DATOS
+# 2. SQL SERVER Y BASE DE DATOS
 # ============================================================
 resource "azurerm_mssql_server" "sql_server" {
   name                         = "pruebasql${random_id.suffix.hex}"
@@ -48,7 +48,7 @@ resource "azurerm_mssql_database" "db" {
 }
 
 # ============================================================
-# 3. KEY VAULT (DEBE CREARSE ANTES DEL APP SERVICE)
+# 3. KEY VAULT
 # ============================================================
 resource "azurerm_key_vault" "kv" {
   name                        = "keyprueba${random_id.suffix.hex}"
@@ -62,7 +62,7 @@ resource "azurerm_key_vault" "kv" {
 }
 
 # ============================================================
-# 4. CREACIÓN AUTOMÁTICA DE SECRETOS DE LARAVEL
+# 4. SECRETOS AUTOMÁTICOS DE LARAVEL
 # ============================================================
 resource "azurerm_key_vault_secret" "app_key" {
   name         = "app-key"
@@ -95,7 +95,7 @@ resource "azurerm_key_vault_secret" "db_pass" {
 }
 
 # ============================================================
-# 5. APP SERVICE PLAN Y APP SERVICE (PHP 8.2)
+# 5. APP SERVICE PLAN + WEB APP (PHP 8.2)
 # ============================================================
 resource "azurerm_service_plan" "plan" {
   name                = "plan-demo${random_id.suffix.hex}"
@@ -111,12 +111,10 @@ resource "azurerm_linux_web_app" "app" {
   resource_group_name = azurerm_resource_group.rg.name
   service_plan_id     = azurerm_service_plan.plan.id
 
-  # --- Identidad administrada ---
   identity {
     type = "SystemAssigned"
   }
 
-  # --- Configuración PHP 8.2 (nueva sintaxis compatible con azurerm >= 4.x) ---
   site_config {
     always_on = true
     application_stack {
@@ -124,16 +122,11 @@ resource "azurerm_linux_web_app" "app" {
     }
   }
 
-  # --- Variables de entorno Laravel ---
   app_settings = {
     WEBSITE_RUN_FROM_PACKAGE = "0"
-
-    # Configuración general de Laravel
     APP_ENV   = "production"
     APP_DEBUG = "false"
     APP_KEY   = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.app_key.id})"
-
-    # Configuración de base de datos
     DB_CONNECTION = "mysql"
     DB_HOST       = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.db_host.id})"
     DB_PORT       = "3306"
@@ -143,37 +136,6 @@ resource "azurerm_linux_web_app" "app" {
   }
 
   depends_on = [
-    azurerm_key_vault.kv,
-    azurerm_key_vault_secret.app_key,
-    azurerm_key_vault_secret.db_host,
-    azurerm_key_vault_secret.db_name,
-    azurerm_key_vault_secret.db_user,
-    azurerm_key_vault_secret.db_pass
-  ]
-}
-
-# ============================================================
-# 6. ROLES RBAC DEL APP SERVICE EN EL KEY VAULT
-# ============================================================
-
-# Permite CREAR / ACTUALIZAR / ELIMINAR secretos
-resource "azurerm_role_assignment" "keyvault_writer" {
-  depends_on = [
-    azurerm_linux_web_app.app,
     azurerm_key_vault.kv
   ]
-  scope                = azurerm_key_vault.kv.id
-  role_definition_name = "Key Vault Secrets Officer"
-  principal_id         = azurerm_linux_web_app.app.identity[0].principal_id
-}
-
-# Permite LEER secretos (necesario para ejecución)
-resource "azurerm_role_assignment" "keyvault_reader" {
-  depends_on = [
-    azurerm_linux_web_app.app,
-    azurerm_key_vault.kv
-  ]
-  scope                = azurerm_key_vault.kv.id
-  role_definition_name = "Key Vault Secrets User"
-  principal_id         = azurerm_linux_web_app.app.identity[0].principal_id
 }
