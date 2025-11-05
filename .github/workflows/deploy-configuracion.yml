@@ -30,19 +30,23 @@ jobs:
         working-directory: .
 
     steps:
-      - name: Checkout repo
+      - name: 🧩 Checkout del repositorio
         uses: actions/checkout@v4
 
-      - name: Setup Terraform
+      - name: ⚙️ Instalar Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.5
 
-      - name: Terraform Init
-        run: terraform init
+      - name: 🪣 Inicializar Terraform
+        run: terraform init -input=false -no-color
 
-      - name: Terraform Plan (configuracion)
-        run: terraform plan -out=tfplan-configuracion
+      - name: 🧮 Generar Plan (configuracion)
+        run: terraform plan -input=false -no-color -out=tfplan-configuracion
 
-      - name: Terraform Apply (configuracion)
-        run: terraform apply -auto-approve tfplan-configuracion
+      - name: 🚀 Aplicar Plan (configuracion)
+        run: terraform apply -input=false -auto-approve -no-color tfplan-configuracion
+
+      - name: ✅ Limpieza final
+        if: always()
+        run: echo "Despliegue completado correctamente ✅"
