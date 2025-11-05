@@ -48,13 +48,14 @@ jobs:
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       # ==========================================================
-      # 5️⃣ Planificar infraestructura
+      # 5️⃣ Planificar infraestructura (bloque multilínea corregido)
       # ==========================================================
       - name: Terraform Plan
-        run: terraform plan -input=false -out=tfplan \
-          -var "subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-          -var "tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
-          -var "location=${{ secrets.AZURE_LOCATION }}"
+        run: |
+          terraform plan -input=false -out=tfplan \
+            -var "subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+            -var "tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
+            -var "location=${{ secrets.AZURE_LOCATION }}"
         env:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
