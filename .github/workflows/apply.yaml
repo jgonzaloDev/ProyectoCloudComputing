@@ -15,9 +15,15 @@ jobs:
       contents: read
 
     steps:
-      # ===============================
-      # 1️⃣ Login Azure con OIDC
-      # ===============================
+      # ==========================================================
+      # 1️⃣ Descargar el código del repositorio
+      # ==========================================================
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ==========================================================
+      # 2️⃣ Autenticación en Azure con OIDC (sin credenciales)
+      # ==========================================================
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
@@ -25,15 +31,15 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # ===============================
-      # 2️⃣ Instalar Terraform
-      # ===============================
+      # ==========================================================
+      # 3️⃣ Instalar Terraform
+      # ==========================================================
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # ===============================
-      # 3️⃣ Init + Plan + Apply
-      # ===============================
+      # ==========================================================
+      # 4️⃣ Inicializar Terraform
+      # ==========================================================
       - name: Terraform Init
         run: terraform init
         env:
@@ -41,6 +47,9 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      # ==========================================================
+      # 5️⃣ Planificar infraestructura
+      # ==========================================================
       - name: Terraform Plan
         run: terraform plan -input=false -out=tfplan -var "subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" -var "tenant_id=${{ secrets.AZURE_TENANT_ID }}"
         env:
@@ -48,9 +57,19 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      # ==========================================================
+      # 6️⃣ Aplicar infraestructura
+      # ==========================================================
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
         env:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # ==========================================================
+      # 7️⃣ Logout de Azure (opcional, buena práctica)
+      # ==========================================================
+      - name: Logout Azure
+        if: always()
+        run: az logout
