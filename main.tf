@@ -29,7 +29,7 @@ resource "azurerm_resource_group" "rg" {
 }
 
 # ============================================================
-# 2. SQL SERVER Y BASE DE DATOS
+# 2. SERVIDOR SQL + BASE DE DATOS
 # ============================================================
 resource "azurerm_mssql_server" "sql_server" {
   name                         = "pruebasql${random_id.suffix.hex}"
@@ -48,7 +48,7 @@ resource "azurerm_mssql_database" "db" {
 }
 
 # ============================================================
-# 3. KEY VAULT
+# 3. KEY VAULT (VACÍO, SIN SECRETOS)
 # ============================================================
 resource "azurerm_key_vault" "kv" {
   name                        = "keyprueba${random_id.suffix.hex}"
@@ -62,40 +62,7 @@ resource "azurerm_key_vault" "kv" {
 }
 
 # ============================================================
-# 4. SECRETOS AUTOMÁTICOS DE LARAVEL
-# ============================================================
-resource "azurerm_key_vault_secret" "app_key" {
-  name         = "app-key"
-  value        = "base64:123456789ABCDEF123456789ABCDEF123456789ABCDEF123456789ABCDEF"
-  key_vault_id = azurerm_key_vault.kv.id
-}
-
-resource "azurerm_key_vault_secret" "db_host" {
-  name         = "db-host"
-  value        = azurerm_mssql_server.sql_server.fully_qualified_domain_name
-  key_vault_id = azurerm_key_vault.kv.id
-}
-
-resource "azurerm_key_vault_secret" "db_name" {
-  name         = "db-name"
-  value        = azurerm_mssql_database.db.name
-  key_vault_id = azurerm_key_vault.kv.id
-}
-
-resource "azurerm_key_vault_secret" "db_user" {
-  name         = "db-user"
-  value        = azurerm_mssql_server.sql_server.administrator_login
-  key_vault_id = azurerm_key_vault.kv.id
-}
-
-resource "azurerm_key_vault_secret" "db_pass" {
-  name         = "db-pass"
-  value        = azurerm_mssql_server.sql_server.administrator_login_password
-  key_vault_id = azurerm_key_vault.kv.id
-}
-
-# ============================================================
-# 5. APP SERVICE PLAN + WEB APP (PHP 8.2)
+# 4. APP SERVICE PLAN + WEB APP (PHP 8.2)
 # ============================================================
 resource "azurerm_service_plan" "plan" {
   name                = "plan-demo${random_id.suffix.hex}"
@@ -122,17 +89,9 @@ resource "azurerm_linux_web_app" "app" {
     }
   }
 
+  # Sin app_settings todavía
   app_settings = {
     WEBSITE_RUN_FROM_PACKAGE = "0"
-    APP_ENV   = "production"
-    APP_DEBUG = "false"
-    APP_KEY   = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.app_key.id})"
-    DB_CONNECTION = "mysql"
-    DB_HOST       = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.db_host.id})"
-    DB_PORT       = "3306"
-    DB_DATABASE   = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.db_name.id})"
-    DB_USERNAME   = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.db_user.id})"
-    DB_PASSWORD   = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.db_pass.id})"
   }
 
   depends_on = [
