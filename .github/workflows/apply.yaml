@@ -51,7 +51,10 @@ jobs:
       # 5️⃣ Planificar infraestructura
       # ==========================================================
       - name: Terraform Plan
-        run: terraform plan -input=false -out=tfplan -var "subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" -var "tenant_id=${{ secrets.AZURE_TENANT_ID }}"
+        run: terraform plan -input=false -out=tfplan \
+          -var "subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+          -var "tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
+          -var "location=${{ secrets.AZURE_LOCATION }}"
         env:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}

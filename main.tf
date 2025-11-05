@@ -14,6 +14,13 @@ provider "azurerm" {
 }
 
 # ============================================================
+# 0. SUFIJO ALEATORIO PARA EVITAR CONFLICTOS DE NOMBRES
+# ============================================================
+resource "random_id" "suffix" {
+  byte_length = 2
+}
+
+# ============================================================
 # 1. GRUPO DE RECURSOS
 # ============================================================
 resource "azurerm_resource_group" "rg" {
@@ -25,7 +32,7 @@ resource "azurerm_resource_group" "rg" {
 # 2. SERVIDOR SQL
 # ============================================================
 resource "azurerm_mssql_server" "sql_server" {
-  name                         = "pruebaserver"
+  name                         = "pruebasql${random_id.suffix.hex}"
   resource_group_name           = azurerm_resource_group.rg.name
   location                      = azurerm_resource_group.rg.location
   version                       = "12.0"
@@ -35,9 +42,9 @@ resource "azurerm_mssql_server" "sql_server" {
 }
 
 resource "azurerm_mssql_database" "db" {
-  name                = "BD_PRUEBA"
-  server_id           = azurerm_mssql_server.sql_server.id
-  sku_name            = "Basic"
+  name      = "BD_PRUEBA"
+  server_id = azurerm_mssql_server.sql_server.id
+  sku_name  = "Basic"
 }
 
 # ============================================================
@@ -52,7 +59,7 @@ resource "azurerm_service_plan" "plan" {
 }
 
 resource "azurerm_linux_web_app" "app" {
-  name                = "APIDEMO94"
+  name                = "apidemo${random_id.suffix.hex}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   service_plan_id     = azurerm_service_plan.plan.id
@@ -74,7 +81,7 @@ resource "azurerm_linux_web_app" "app" {
 # 4. KEY VAULT + RBAC (LECTURA/ESCRITURA)
 # ============================================================
 resource "azurerm_key_vault" "kv" {
-  name                        = "keyprueba"
+  name                        = "keyprueba${random_id.suffix.hex}"
   location                    = azurerm_resource_group.rg.location
   resource_group_name         = azurerm_resource_group.rg.name
   tenant_id                   = var.tenant_id
