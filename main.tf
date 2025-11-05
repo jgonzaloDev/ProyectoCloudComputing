@@ -111,15 +111,20 @@ resource "azurerm_linux_web_app" "app" {
   resource_group_name = azurerm_resource_group.rg.name
   service_plan_id     = azurerm_service_plan.plan.id
 
+  # --- Identidad administrada ---
   identity {
     type = "SystemAssigned"
   }
 
+  # --- Configuración PHP 8.2 (nueva sintaxis compatible con azurerm >= 4.x) ---
   site_config {
-    always_on        = true
-    linux_fx_version = "PHP|8.2"
+    always_on = true
+    application_stack {
+      php_version = "8.2"
+    }
   }
 
+  # --- Variables de entorno Laravel ---
   app_settings = {
     WEBSITE_RUN_FROM_PACKAGE = "0"
 
