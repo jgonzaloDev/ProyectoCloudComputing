@@ -15,6 +15,23 @@ jobs:
     name: 'Crear infraestructura'
     runs-on: ubuntu-latest
 
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+      TF_VAR_client_secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+      TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+      TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_SQL_ADMIN_PASSWORD }}
+      TF_VAR_sql_admin_user: ${{ secrets.TF_VAR_SQL_ADMIN_LOGIN }}
+      TF_VAR_sql_server_name: ${{ secrets.TF_VAR_SQL_SERVER_NAME }}
+      TF_VAR_sql_database_name: ${{ secrets.TF_VAR_SQL_DATABASE_NAME }}
+      TF_VAR_resource_group_name: ${{ secrets.TF_VAR_RESOURCE_GROUP_NAME }}
+      TF_VAR_app_service_name: ${{ secrets.TF_VAR_WEBAPP_NAME }}
+      TF_VAR_location: ${{ secrets.TF_VAR_LOCATION }}
+
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -26,29 +43,9 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Terraform Plan
         run: terraform plan -out=tfplan
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          TF_VAR_client_id: ${{ secrets.AZURE_CLIENT_ID }}
-          TF_VAR_client_secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
-          TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          TF_VAR_sql_admin_password: ${{ secrets.SQL_ADMIN_PASSWORD }}
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
